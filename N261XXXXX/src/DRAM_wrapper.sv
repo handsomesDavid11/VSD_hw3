@@ -104,8 +104,10 @@ module DRAM_wrapper (
                          next_state = ACT;
                     
                end
+               // when receive address actvity DRAM
                ACT: begin
-                    
+                    if(delay_done)
+                         next_state = 
                end
                READ: begin
                end
