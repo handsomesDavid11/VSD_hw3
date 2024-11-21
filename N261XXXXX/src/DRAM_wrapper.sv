@@ -42,7 +42,8 @@ module SRAM_wrapper (
 	output logic [1:0] RRESP_S,
 	output logic RLAST_S,
 	output logic RVALID_S,
-	input RREADY_S
+	input RREADY_S,
+     
 
 
 );
