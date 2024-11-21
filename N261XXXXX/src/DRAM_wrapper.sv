@@ -1,6 +1,6 @@
 // `include "AXI_define.svh"
 `include "../include/AXI_define.svh"
-module SRAM_wrapper (
+module DRAM_wrapper (
      input ACLK,
      input ARESETn,
 
@@ -43,24 +43,30 @@ module SRAM_wrapper (
 	output logic RLAST_S,
 	output logic RVALID_S,
 	input RREADY_S,
-     
-
+     output reg CSn,
+     output reg [3:0] WEn,
+     output reg RASn, 
+     output reg CASn,
+     output reg [10:0] A,
+     output reg [31:0] D,
+     input [31:0] Q,
+     input VALID
 
 );
 
-     logic CEB;
-     logic WEB;
-     logic [31:0] BWEB;
-     logic [13:0] A;
-     logic [31:0] DI;
-     logic [31:0] DO;
+
 
      logic [2:0] cur_state, next_state;
 
-     localparam [2:0]    ADDR         = 3'b000,
-                         READDATA     = 3'b001,
-                         WRITEDATA    = 3'b010,
-                         RESPONSE     = 3'b011;
+     localparam [2:0]    INIT      = 3'b000,
+                         ACT       = 3'b001,
+                         READ      = 3'b010,
+                         WRITE     = 3'b011,
+                         PRE       = 3'b101;
+ 
+     
+
+
 
 
      logic AR_done, RD_done, AW_done, WD_done, RES_done;
@@ -80,6 +86,35 @@ module SRAM_wrapper (
                cur_state <= ADDR;
           else 
                cur_state <= next_state;
+     end
+     logic [2:0] delay_cnt;
+     logic [2:0] cur_state, next_state;
+     logic delay_done;
+     // delay done assign
+     assign 
+
+
+     // write signal control
+
+     // Dram FSM
+     always_comb begin
+          case(cur_state):
+               INIT: begin
+                    if(AR_done | AW_done)
+                         next_state = ACT;
+                    
+               end
+               ACT: begin
+                    
+               end
+               READ: begin
+               end
+               WRITE: begin
+               end
+               PRE:begin
+
+               end
+          endcase
      end
 
      always_comb begin
