@@ -43,6 +43,8 @@ module DRAM_wrapper (
 	output logic RLAST_S,
 	output logic RVALID_S,
 	input RREADY_S,
+
+     // to DRAM
      output reg CSn,
      output reg [3:0] WEn,
      output reg RASn, 
@@ -91,7 +93,29 @@ module DRAM_wrapper (
 
      //------------------------" write  signal control-------------------//
      logic write;
-     //----------------------------- Dram FSM-----------------------------//
+     
+     always_ff @(posedge ACLK or negedge ARESETn) begin
+          if(~ARESETn) begin
+               write <= 1'b0;
+          end
+          else begin
+               case(cur_state)
+                    INIT:begin
+                         if(AW_done)
+                              write <= 1'b1;
+                    end
+                    ACT: begin
+                         write <= write;
+                    end
+                    default:
+                         write <= 1'b0;
+
+               endcase
+
+          end
+     end
+
+     //----------------------------- DRAM FSM-----------------------------//
      
      always_ff @(posedge ACLK or negedge ARESETn) begin
           if(~ARESETn)
@@ -143,21 +167,178 @@ module DRAM_wrapper (
      end
 
 //-----------------------------count delay------------------------------//
-always_ff @(posedge ACLK or negedge ARESETn) begin
-     if(~rst)
-          delay_cnt <= 3'b0;
-     else begin
-     case(cur_state)
-          INIT:
+     always_ff @(posedge ACLK or negedge ARESETn) begin
+          if(~ARESETn)
                delay_cnt <= 3'b0;
-          default:
-               delay_cnt <= (delay_done)? 3'b0 : delay_cnt + 3'b1;
-     endcase
+          else begin
+          case(cur_state)
+               INIT:
+                    delay_cnt <= 3'b0;
+               default:
+                    delay_cnt <= (delay_done)? 3'b0 : delay_cnt + 3'b1;
+          endcase
+          end
      end
-end
+//-------------------------------read count-----------------------------------//
+     logic [`AXI_LEN_BITS-1:0] read_cnt;
+     always_ff @(posedge ACLK or negedge ARESETn) begin
+          if(~ARESETn) 
+               read_cnt     <=   `AXI_LEN_BITS'b0;
+          else begin
+               case(cur_state)
+                    READ:
+                         read_cnt <= RD_done ? read_cnt + `AXI_LEN_BITS'b1:read_cnt;
+                    default:
+                         read_cnt <= `AXI_LEN_BITS'b0;
+               endcase
+          end
+     end
 
-//-------------------------------- input signal store-------------------------//
-reg
+
+
+//-------------------------------- input RA/WA store-------------------------//
+     logic [`AXI_IDS_BITS-1:0] reg_ID;
+     logic [`AXI_ADDR_BITS-1:0] reg_ADDR;
+     logic [`AXI_LEN_BITS  -1:0] reg_LEN;
+     logic [`AXI_SIZE_BITS -1:0] reg_SIZE;
+     logic [1:0] reg_BURST;
+
+     always_ff @(posedge ACLK or negedge ARESETn) begin
+          if(~ARESETn) begin
+               reg_ID         <= `AXI_IDS_BITS'b0;
+               reg_ADDR       <= `AXI_ADDR_BITS'b0;
+               reg_LEN        <= `AXI_LEN_BITS'b0;
+               reg_SIZE       <= `AXI_SIZE_BITS'b0;
+               reg_BURST      <= 2'b0;
+          end
+          else if (AR_done) begin
+               reg_ID         <= ARID_S;
+               reg_ADDR       <= ARADDR_S;
+               reg_LEN        <= ARLEN_S;
+               reg_SIZE       <= ARSIZE_S;
+               reg_BURST      <= ARBURST_S;
+          end
+          else if (AW_done) begin
+               reg_ID         <= ARID_S;
+               reg_ADDR       <= ARADDR_S;
+               reg_LEN        <= ARLEN_S;
+               reg_SIZE       <= ARSIZE_S;
+               reg_BURST      <= ARBURST_S;
+          end
+     end
+//--------------------------- output singnal and data to DRAM-----------------------//
+//only init can activity DRAM, and every state need wait 5 cycle at least
+     always_comb begin
+          case(cur_state)
+               INIT: begin
+                    CSn  = 1'b1;
+                    RASn = 1'b1;
+                    CASn = 1'b1;
+                    WEn  = 4'b1111;
+                    A    = reg_ADDR[22:12];
+                    D    = `DATA_BITS'h0;
+               end
+               ACT:begin
+                    CSn  = 1'b0;
+                    RASn = (delay_cnt == 3'b0)? 1'b0:1'b1;
+                    CASn = 1'b1;
+                    WEn  = 4'b1111;
+                    A    = reg_ADDR[22:12];
+                    D    = WDATA;
+
+               end
+               READ: begin
+                    CSn  = 1'b0;
+                    RASn = 1'b1;
+                    CASn = (delay_cnt == 3'b0)? 1'b0:1'b1;
+                    WEn  = 4'b1111;
+                    A    = reg_ADDR[11:2] + read_cnt[1:0];
+                    D    = WDATA;
+
+               end
+               WRITE: begin
+                    CSn  = 1'b0;
+                    RASn = 1'b1;
+                    CASn = (delay_cnt == 3'b0)? 1'b0:1'b1;
+                    WEn  = (delay_cnt == 3'b0)? WSTRB:4'b1111;
+                    A    = reg_ADDR[11:2] ;
+                    D    = reg_WDATA;
+
+
+               end
+               default: begin
+                    CSn  = 1'b0;
+                    RASn = (delay_cnt == 3'b0)? 1'b0:1'b1;
+                    CASn = 1'b1;
+                    WEn  = (delay_cnt == 3'b0)? 4'b0:4'b1111;
+                    A    = reg_ADDR[22:12] ;
+                    D    = `DATA_BITS'h0;
+               end
+          endcase
+     end
+
+
+//-------------------------------AW/AR ready signal control---------------------//
+     always_comb begin
+          case(cur_state)
+               INIT: begin
+                    ARREADY_S = ~AWVALID;
+                    AWREADY_S = 1'b1;
+               end
+               default: begin
+                    ARREADY_S = 1'b0;
+                    AWREADY_S = 1'b0;
+               end
+
+          endcase
+
+     end
+
+     always_comb begin
+          case (cur_state)
+               WRITE:
+                    WREADY_S = 1'b1;
+               default:
+                    WREADY_S = 1'b0;
+          endcase
+     end
+     always_comb begin
+          case (cur_state)
+               READ: begin
+                    RVALID_S = VALID;
+                    BVALID_S = 1'b0;
+               end
+               PRE: begin
+                    RVALID_S = 1'b0;
+                    BVALID_S = (delay_cnt == 3'b0)? 1'b1: 1'b0;
+               end
+               default : begin 
+                    RVALID_S = 1'b0;
+                    BVALID_S = 1'b0;
+               end
+          endcase
+     end
+
+     logic [`DATA_BITS -1:0] reg_RDATA;
+
+     always_ff @(posedge ACLK or negedge ARESETn) begin
+          if(~ARESETn) begin
+               reg_RDATA <= `DATA_BITS'b0;
+          end 
+          else begin
+               reg_RDATA <= DRAM_valid? Q:reg_RDATA;
+          end
+     end
+
+     assign RID_S   = reg_ID;
+     assign RDATA_S = VALID? Q : reg_RDATA;
+     assign RRESP_S = `AXI_RESP_OKAY;
+
+     assign RLAST_S = (read_cnt == reg_LEN);
+     assign BID_S   = reg_ID;
+     assign BRESP_S = `AXI_RESP_OKAY;
+
+    
 
 
 
