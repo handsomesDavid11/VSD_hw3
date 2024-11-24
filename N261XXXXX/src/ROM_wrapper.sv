@@ -208,8 +208,8 @@ module DRAM_wrapper (
 
 /*--------------------------- ROM   */
      assign RDATA_S = DO;
-     assign WEB     = WSTRB_S;
-     assign DI      = WDATA_S;
+//     assign WEB     = WSTRB_S;
+//     assign DI      = WDATA_S;
 
      always_comb begin
         case (cur_status)
