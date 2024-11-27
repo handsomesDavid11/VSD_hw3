@@ -159,9 +159,9 @@ module DMA_master (
           if(rst)
                oper_DMALEN <= `AXI_LEN_BITS'h0;
           else if (DMAEN)
-               oper_DMALEN <= ( DMALEN < `AXI_DATA_BITS'hff )?DMALEN[`AXI_LEN_BITS-1:0]:`AXI_LEN_BITS'hff ;
+               oper_DMALEN <= ( DMALEN < `AXI_DATA_BITS'hf )?DMALEN[`AXI_LEN_BITS-1:0]:`AXI_LEN_BITS'hf ;
           else if (cur_state == RESPONSE)
-               oper_DMALEN <= ( rem_DMALEN < `AXI_DATA_BITS'hff )?rem_DMALEN[`AXI_LEN_BITS-1:0]:`AXI_LEN_BITS'hff;
+               oper_DMALEN <= ( rem_DMALEN < `AXI_DATA_BITS'hf )?rem_DMALEN[`AXI_LEN_BITS-1:0]:`AXI_LEN_BITS'hf;
      end
 
      always_ff @(posedge clk or posedge rst) begin
@@ -174,13 +174,14 @@ module DMA_master (
                tmp_DMASRC <= DMASRC;
           end
           else if((cur_state == RESPONSE) && ~done) begin
-               tmp_DMADST <= tmp_DMADST + `AXI_ADDR_BITS'h400;
-               tmp_DMASRC <= tmp_DMASRC + `AXI_ADDR_BITS'h400;
+               tmp_DMADST <= tmp_DMADST + `AXI_ADDR_BITS'h40;
+               tmp_DMASRC <= tmp_DMASRC + `AXI_ADDR_BITS'h40;
           end
      end
      //FIFO
      logic dram_burst;
      logic [2:0] dcnt;
+     ///////////////
      always_ff @(posedge clk or posedge rst) begin
           if (rst) 
                dram_burst <= 1'b0;
