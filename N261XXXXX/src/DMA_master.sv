@@ -265,7 +265,7 @@ module DMA_master (
      assign AWADDR  = tmp_DMADST;
      assign AWLEN   = oper_DMALEN;
      assign AWBURST = `AXI_BURST_FIXED;
-     assign WSTRB   = `AXI_STRB_WORD;
+     assign WSTRB   = 4'b0;
      assign WDATA   = fifo_DO;
      assign WLAST   = wlast;
      //valid
