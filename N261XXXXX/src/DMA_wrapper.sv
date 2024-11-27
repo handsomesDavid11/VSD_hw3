@@ -84,10 +84,86 @@ module DMA_wrapper (
      logic DMAEN;  // Enable the DMA
 
      DMA_master DMA_master(
-          
+     .clk(clk),
+     .rst(~rst),
+     .AWID(AWID_M),
+	.AWADDR(AWADDR_M),
+	.AWLEN(AWLEN_M),
+	.AWSIZE(AWSIZE_M),
+	.AWBURST(AWBURST_M),
+	.AWVALID(AWVALID_M),
+	.AWREADY(AWREADY_M),
+	//WRITE DATA
+	.WDATA(WDATA_M),
+	.WSTRB(WSTRB_M),
+	.WLAST(WLAST_M),
+	.WVALID(WVALID_M),
+	.WREADY(WREADY_M),
+	
+	//WRITE RESPONSE
+	.BID(BID_M),
+	.BRESP(BRESP_M),
+	.BVALID(BVALID_M),
+	.BREADY(BREADY_M),
+     
+	//READ ADDRESS0
+	.ARID(ARID_M),
+	.ARADDR(ARADDR_M),
+	.ARLEN(ARLEN_M),
+	.ARSIZE(ARSIZE_M),
+	.ARBURST(ARBURST_M),
+	.ARVALID(ARVALID_M),
+	.ARREADY(ARREADY_M),
+	
+	//READ DATA0
+	.RID(RID_M),
+	.RDATA(RDATA_M),
+	.RRESP(RRESP_M),
+	.RLAST(RLAST_M),
+	.RVALID(RVALID_M),
+	.RREADY(RREADY_M),
+
+     .DMASRC(DMASRC),   
+     .DMADST(DMADST),
+     .DMALEN(DMALEN),
+     .DMAEN(DMAEN),
+
+     .interrupt(interrupt)
+
           
      ); 
      DMA_slave DMA_slave(
+     .clk(clk),
+     .rst(~rst),
+     .AWID_S(AWID_S),
+     .AWADDR_S(AWADDR_S),
+     .AWLEN_S(AWLEN_S),
+     .AWSIZE_S(AWSIZE_S),
+     .AWBURST_S(AWBURST_S),
+     .AWVALID_S(AWVALID_S),
+     .AWREADY_S(AWREADY_S),
+     .WDATA_S(WDATA_S),
+     .WSTRB_S(WSTRB_S),
+     .WLAST_S(WLAST_S),
+     .WVALID_S(WVALID_S),
+     .WREADY_S(WREADY_S),
+     .BID_S(BID_S),
+     .BRESP_S(BRESP_S),
+     .BVALID_S(BVALID_S),
+     .BREADY_S(BREADY_S),
+     .ARID_S(ARID_S),
+     .ARADDR_S(ARADDR_S),
+     .ARLEN_S(ARLEN_S),
+     .ARSIZE_S(ARSIZE_S),
+     .ARBURST_S(ARBURST_S),
+     .ARVALID_S(ARVALID_S),
+     .ARREADY_S(ARREADY_S),
+     .RID_S(RID_S),
+     .RDATA_S(RDATA_S),
+     .RRESP_S(RRESP_S),
+     .RLAST_S(RLAST_S),
+     .RVALID_S(RVALID_S),
+     .RREADY_S(RREADY_S)
 
      );
 

@@ -64,8 +64,8 @@ module DMA_slave (
      assign WD_done_last = WLAST_S & WD_done;
 
 
-     always_ff @(posedge ACLK or negedge ARESETn) begin
-          if(~ARESETn)
+     always_ff @(posedge clk or negedge rst) begin
+          if(~rst)
                cur_state <= ADDR;
           else 
                cur_state <= next_state;
@@ -105,7 +105,7 @@ module DMA_slave (
                     else if(RES_done & AR_done)
                          next_state = READDATA;
                     else if(RES_done)
-                         next_state = ADDR;
+                         next_state = ADDR; 
                     else 
                          next_state = RESPONSE;
                end
@@ -128,7 +128,12 @@ module DMA_slave (
           end  
           else begin
 
-               
+               // address 0X10020100  0X10020200 
+               DMA_ADDR  <= AR_done ? ARADDR_S[10:8] : AW_done ? AWADDR_S[10:8] :DMA_ADDR ;
+               IDS       <= AR_done ? ARID_S : AW_done ? AWID_S :IDS ;
+               LEN       <= AR_done ? ARLEN_S : AW_done ? AWLEN_S :LEN ;
+               WSTRB     <= AW_done ? WSTRB_S :WSTRB;
+
           
           end
 
@@ -136,7 +141,7 @@ module DMA_slave (
 
 
 
-
+     // to DMA master
      always_ff @(posedge clk or posedge rst) begin
           if(rst) begin
                DMASRC <= 32'b0;
@@ -144,9 +149,60 @@ module DMA_slave (
                DMALEN <= 32'b0;
                DMAEN  <= 1'b0;
           end
-          else if ()
+          else if (WD_done)begin
+               case(DMA_ADDR)
+                    3'h1:DMAEN     <= WDATA_S[0];
+                    3'h2: DMASRC   <= WDATA_S;
+                    3'h3: DMADST   <= WDATA_S;
+                    3'h4: DMAEN    <= WDATA_S;
+
+               
+               endcase
+          end
+          else DMAEN <= 1'b0;
 
      end
+
+     //to AXI 
+     assign RLAST_S = 1;
+     assign RRESP_S = `AXI_RESP_OKAY;
+     assign BRESP_S = `AXI_RESP_OKAY;
+     assign RDATA_S = 0;
+     assign RID_S   = IDS;
+     assign BID_S   = IDS;
+
+     //address
+     always_comb begin
+          case(cur_state)
+               ADDR:
+                    AWREADY_S = 1'b1;
+               RESPONSE:
+                    AWREADY_S = RES_done;
+               READDATA:
+                    AWREADY_S = RD_done;
+               default:
+                    AWREADY_S = 1'b0;
+          endcase
+     end
+
+     always_comb begin
+          case(cur_state)
+               ADDR:
+                    ARREADY_S = ~AWVALID_S;
+               RESPONSE:
+                    ARREADY_S = 1'b0;
+               READDATA:
+                    ARREADY_S = 1'b0;
+               default:/* default */
+                    ARREADY_S = 1'b0;
+          endcase
+     end
+
+     assign WREADY_S = (cur_state == WRITEDATA) ? 1'b1:1'b0;
+     assign BVALID_S = (cur_state == RESPONSE)  ? 1'b1:1'b0;
+     assign RVALID_S = (cur_state == READDATA)  ? 1'b1:1'b0;
+
+
 
 
 endmodule
